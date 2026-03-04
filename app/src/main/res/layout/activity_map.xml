@@ -12,4 +12,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <TextView
+        android:id="@+id/riskTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Risk will appear here"
+        android:textSize="16sp"
+        android:padding="12dp"
+        android:background="#AAFFFFFF"
+        android:elevation="8dp"
+        android:layout_gravity="top"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

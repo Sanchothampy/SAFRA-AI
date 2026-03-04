@@ -34,6 +34,12 @@ import org.json.JSONObject;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 
+import java.util.Calendar;
+import com.safra.app.ai.RiskEngine;
+import com.safra.app.ai.RouteSafetyAnalyzer;
+import android.graphics.Color;
+import android.widget.TextView;
+
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
@@ -50,6 +56,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+
+        int riskScore = RiskEngine.calculateRisk(
+                currentHour,
+                1500,   // distance to police (dummy for now)
+                true,   // isolated area
+                false   // high crime zone
+        );
+
+        String riskLevel = RouteSafetyAnalyzer.getRiskLevel(riskScore);
+        String recommendation = RouteSafetyAnalyzer.getRecommendation(riskScore);
+
+        TextView riskText = findViewById(R.id.riskTextView);
+
+        riskText.setText(
+                "Risk Score: " + riskScore + "%\n" +
+                        "Level: " + riskLevel + "\n" +
+                        recommendation
+        );
+
+        if (riskScore > 60) {
+            riskText.setTextColor(Color.RED);
+        } else if (riskScore > 30) {
+            riskText.setTextColor(Color.parseColor("#FFA500"));
+        } else {
+            riskText.setTextColor(Color.GREEN);
+        }
 
         // CRITICAL: Get the API Key from AndroidManifest.xml
         try {
