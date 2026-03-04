@@ -46,9 +46,9 @@ public class WakeWordService extends Service {
     private void initializePorcupine() {
         try {
             porcupineManager = new PorcupineManager.Builder()
-
-                    .setAccessKey("hxD9FJA7cSzB2iaRuEnKP2Raps5RaHM98v6YuC1s0yLZ4LkhjMB3eQ==  ")
-
+                    // 👇 PASTE YOUR NEW ACCESSKEY FROM THE PICOVOICE CONSOLE HERE 👇
+                    .setAccessKey("your access key")
+                    // 👇 Make sure this filename matches the one you downloaded and put in assets 👇
                     .setKeywordPath("safra-help_en_android_v3_0_0.ppn")
                     .setSensitivity(0.7f)
                     .build(getApplicationContext(), new PorcupineManagerCallback() {
