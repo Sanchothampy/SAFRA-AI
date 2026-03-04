@@ -49,6 +49,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private FusedLocationProviderClient fusedLocationClient;
     private RequestQueue requestQueue;
 
+    private LatLng userLatLng;
+
     // API Key will be loaded from the manifest
     private String MAPS_API_KEY;
 
@@ -56,34 +58,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
-
-        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-
-        int riskScore = RiskEngine.calculateRisk(
-                currentHour,
-                1500,   // distance to police (dummy for now)
-                true,   // isolated area
-                false   // high crime zone
-        );
-
-        String riskLevel = RouteSafetyAnalyzer.getRiskLevel(riskScore);
-        String recommendation = RouteSafetyAnalyzer.getRecommendation(riskScore);
-
-        TextView riskText = findViewById(R.id.riskTextView);
-
-        riskText.setText(
-                "Risk Score: " + riskScore + "%\n" +
-                        "Level: " + riskLevel + "\n" +
-                        recommendation
-        );
-
-        if (riskScore > 60) {
-            riskText.setTextColor(Color.RED);
-        } else if (riskScore > 30) {
-            riskText.setTextColor(Color.parseColor("#FFA500"));
-        } else {
-            riskText.setTextColor(Color.GREEN);
-        }
 
         // CRITICAL: Get the API Key from AndroidManifest.xml
         try {
@@ -151,7 +125,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             fusedLocationClient.getLastLocation()
                     .addOnSuccessListener(this, location -> {
                         if (location != null) {
-                            LatLng userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                            userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
 
                             googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 14f));
 
@@ -215,6 +189,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
             // CRITICAL CHECK: Look for the status field
             String status = root.getString("status");
+            if (userLatLng == null) {
+                Log.e(TAG, "User location is null. Cannot calculate risk.");
+                return;
+            }
+
             if (!status.equals("OK")) {
                 Log.w(TAG, "Places API Status Not OK: " + status);
                 // If status is "ZERO_RESULTS", there are no police stations nearby (common in simulators)
@@ -228,6 +207,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
 
             JSONArray results = root.getJSONArray("results");
+            int policeCount = results.length();
+            double minDistance = Double.MAX_VALUE;
 
             for (int i = 0; i < results.length(); i++) {
                 JSONObject place = results.getJSONObject(i);
@@ -237,12 +218,52 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 double lat = location.getDouble("lat");
                 double lng = location.getDouble("lng");
 
+                float[] distanceResult = new float[1];
+
+                android.location.Location.distanceBetween(
+                        userLatLng.latitude,
+                        userLatLng.longitude,
+                        lat,
+                        lng,
+                        distanceResult
+                );
+
+                double distance = distanceResult[0];
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+
                 LatLng placeLatLng = new LatLng(lat, lng);
 
                 googleMap.addMarker(new MarkerOptions()
                         .position(placeLatLng)
                         .title(name)
                         .snippet("Police Station"));
+            }
+
+            int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+
+            int riskScore = RiskEngine.calculateRisk(
+                    currentHour,
+                    minDistance,
+                    policeCount,
+                    5.0,
+                    false
+            );
+
+            String riskLevel = RouteSafetyAnalyzer.getRiskLevel(riskScore);
+            String recommendation = RouteSafetyAnalyzer.getRecommendation(riskScore);
+
+            TextView riskText = findViewById(R.id.riskTextView);
+
+            riskText.setText("Risk Score: " + riskScore + "%\n" + "Level: " + riskLevel + "\n" + recommendation);
+            if (riskScore > 60) {
+                riskText.setTextColor(Color.RED);
+            } else if (riskScore > 30) {
+                riskText.setTextColor(Color.parseColor("#FFA500"));
+            } else {
+                riskText.setTextColor(Color.GREEN);
             }
 
         } catch (JSONException e) {
