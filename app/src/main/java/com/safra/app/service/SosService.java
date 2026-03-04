@@ -9,14 +9,12 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.AssetFileDescriptor;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.Looper;
@@ -36,6 +34,7 @@ import com.safra.app.model.ContactModel;
 import com.safra.app.ui.activity.MainActivity;
 import com.safra.app.util.FirebaseUtil;
 import com.safra.app.util.NotificationClient;
+import com.safra.app.util.SosUtil; // ✅ Added SosUtil import
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -46,7 +45,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,14 +60,14 @@ public class SosService extends Service implements SensorEventListener {
     private boolean calledEmergency = false;
     private boolean sentNotification = false;
     private AudioManager audioManager = null;
-    private final Float shakeThreshold = 10.2f;
+    private final Float shakeThreshold = 15f;
     private SensorManager sensorManager = null;
     private LocationManager locationManager = null;
     private LocationRequest locationRequest = null;
-    private static final int MIN_TIME_BETWEEN_SHAKES = 1000;
+    private static final int MIN_TIME_BETWEEN_SHAKES = 3000;
     private static NotificationAPI notificationApiService = null;
     private final SmsManager smsManager = SmsManager.getDefault();
-    private static final MediaPlayer mediaPlayer = new MediaPlayer();
+    // private static final MediaPlayer mediaPlayer = new MediaPlayer(); // ❌ REMOVED DUPLICATE
 
     @Nullable
     @Override
@@ -110,7 +108,7 @@ public class SosService extends Service implements SensorEventListener {
                     this.stopForeground(true);
                     this.stopSelf();
 
-                    stopSiren();
+                    SosUtil.stopSiren(); // ✅ FIX: Use unified SosUtil stop
                     resetValues();
                     Log.i("SosService", "Service Stopped");
                 }
@@ -174,15 +172,17 @@ public class SosService extends Service implements SensorEventListener {
 
     private void deviceShaken() {
         if (!Prefs.getBoolean(Constants.SETTINGS_SHAKE_DETECTION, false)) {
-            stopSiren();
-            Log.i("SosService", "Stopped Siren");
+            SosUtil.stopSiren(); // ✅ FIX: Use SosUtil to stop
+            Log.i("SosService", "Stopped Siren by shake detection being disabled");
             return;
         }
 
+        sendShakeNotificationToUser(); // ✅ NEW: User notification added
         activateSosMode();
     }
 
     private void activateSosMode() {
+        isRunning = true; // ✅ FIX: Set flag when alarm is active
         ArrayList<ContactModel> contacts = new ArrayList<>();
         Gson gson = Safra.GSON;
         String jsonContacts = Prefs.getString(Constants.CONTACTS_LIST, "");
@@ -201,12 +201,34 @@ public class SosService extends Service implements SensorEventListener {
         }
 
         if (Prefs.getBoolean(Constants.SETTINGS_PLAY_SIREN, false)) {
-            playSiren();
-            Log.i("SosService", "Playing Siren");
-        } else {
-            stopSiren();
-            Log.i("SosService", "Stopped Siren");
+            SosUtil.playSiren(getApplicationContext()); // ✅ FIX: Use unified SosUtil play
+            Log.i("SosService", "Playing Siren via SosUtil");
         }
+        /* * ❌ REMOVED: No need for 'else stopSiren()' block here. The manual button's
+         * toggle logic handles the stop using the unified MediaPlayer in SosUtil.
+         */
+    }
+
+    // ✅ NEW METHOD: Displays a user notification when SOS is triggered by shake
+    private void sendShakeNotificationToUser() {
+        String CHANNEL_ID = "sos_alert_channel";
+
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "SOS Alerts", NotificationManager.IMPORTANCE_HIGH);
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        Notification notification = new Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle("SOS ALERT SENT")
+                .setContentText("Your location has been sent to your trusted contacts.")
+                .setSmallIcon(R.drawable.ic_launcher_notification)
+                .setAutoCancel(true)
+                .build();
+
+        notificationManager.notify(100, notification);
+        Log.i("SosService", "User notification: SOS alert sent.");
     }
 
     private void sendLocation(ArrayList<ContactModel> contacts) {
@@ -322,32 +344,6 @@ public class SosService extends Service implements SensorEventListener {
 
         startActivity(new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + Constants.EMERGENCY_NUMBER)));
         Log.i("SosService", "Call: called emergency");
-    }
-
-    private void playSiren() {
-        if (mediaPlayer.isPlaying()) {
-            return;
-        }
-
-        try {
-            AssetFileDescriptor afd = getAssets().openFd("police-operation-siren.mp3");
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
-            mediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-            mediaPlayer.prepare();
-            mediaPlayer.setVolume(1f, 1f);
-            mediaPlayer.setLooping(true);
-            mediaPlayer.start();
-        } catch (IOException e) {
-            Log.e("SOS", "playSiren error: " + e.getMessage(), e);
-        }
-    }
-
-    public static void stopSiren() {
-        try {
-            mediaPlayer.stop();
-            mediaPlayer.reset();
-        } catch (Exception ignored) {
-        }
     }
 
     private void resetValues() {

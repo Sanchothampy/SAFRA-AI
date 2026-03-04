@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/pink"
+    android:background="@color/quantum_purple200"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
@@ -18,16 +18,16 @@
         android:layout_height="120dp"
         android:adjustViewBounds="true"
         android:contentDescription="@android:string/untitled"
-        android:scaleX="1.8"
-        android:scaleY="1.8"
-        android:src="@drawable/ic_launcher_foreground" />
+        android:scaleX="1"
+        android:scaleY="1"
+        android:src="@drawable/shield_logo" />
 
     <com.google.android.material.textview.MaterialTextView
         style="@style/TextAppearance.Material3.TitleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/app_name"
-        android:textColor="#F2000000"
+        android:textColor="#4B0082"
         android:textSize="26sp"
         android:textStyle="bold" />
 

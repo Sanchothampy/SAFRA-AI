@@ -1,31 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/safra_background_dark">
+    android:fitsSystemWindows="true"
+    tools:context=".ui.UserManualActivity">
 
-    <LinearLayout
+    <!-- The NestedScrollView allows the content to scroll correctly under the collapsing toolbar. -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:background="@color/white"
+        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
 
-        <TextView
+        <!-- Your original LinearLayout with TextViews for the manual's content. -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/activity_manual_title"  android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface"     android:layout_marginBottom="16dp"/>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_manual_content"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:lineSpacingExtra="4dp"
-            android:text="@string/safra_manual_content"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/activity_manual_title"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/tv_manual_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/safra_manual_content"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp"/>
 
-</ScrollView>
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- This includes the same expandable header from your safety tips screen. -->
+    <!-- Make sure the layout name matches the one you use for safety tips. -->
+    <include
+        android:id="@+id/header"
+        layout="@layout/view_header_expandable" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -12,6 +12,7 @@ import android.location.LocationManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build; // Added for correct service starting
 import android.os.Looper;
 import android.telephony.SmsManager;
 import android.util.Log;
@@ -167,10 +168,13 @@ public class SosUtil {
         return contacts;
     }
 
+    // MANUAL SOS BUTTON LOGIC - Now correctly handles stop, regardless of trigger.
     public static void activateInstantSosMode(Context context) {
         if (mediaPlayer.isPlaying()) {
             stopSiren();
             resetValues();
+            // ✅ NEW: Stop the background service (which handles shake/voice detection) when manual stop is pressed
+            stopSosNotificationService(context);
             return;
         }
 
@@ -185,6 +189,9 @@ public class SosUtil {
         if (!contacts.isEmpty()) {
             sendLocation(context, contacts);
         }
+
+        // Start the SOS service to ensure the siren plays in the foreground
+        startSosNotificationService(context);
 
         if (Prefs.getBoolean(Constants.SETTINGS_PLAY_SIREN, false) && !mediaPlayer.isPlaying()) {
             playSiren(context);
@@ -267,7 +274,8 @@ public class SosUtil {
         context.startActivity(new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + Constants.EMERGENCY_NUMBER)));
     }
 
-    private static void playSiren(Context context) {
+    // ✅ FIX: Changed to public so SosService can call it
+    public static void playSiren(Context context) {
         if (mediaPlayer.isPlaying()) return;
         if (audioManager == null) {
             audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -335,7 +343,11 @@ public class SosUtil {
         if (!SosService.isRunning) {
             Intent notificationIntent = new Intent(context, SosService.class);
             notificationIntent.setAction("START");
-            context.startForegroundService(notificationIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(notificationIntent);
+            } else {
+                context.startService(notificationIntent);
+            }
         }
     }
 
@@ -343,8 +355,11 @@ public class SosUtil {
         if (SosService.isRunning) {
             Intent notificationIntent = new Intent(context, SosService.class);
             notificationIntent.setAction("STOP");
-            context.startForegroundService(notificationIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(notificationIntent);
+            } else {
+                context.startService(notificationIntent);
+            }
         }
     }
 }
-

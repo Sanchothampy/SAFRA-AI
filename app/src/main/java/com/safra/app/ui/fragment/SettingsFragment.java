@@ -14,9 +14,8 @@ import com.safra.app.R;
 import com.safra.app.common.Constants;
 import com.safra.app.config.Prefs;
 import com.safra.app.databinding.FragmentSettingsBinding;
-import com.safra.app.service.SosService;
 import com.safra.app.ui.activity.MainActivity;
-import com.safra.app.util.SosUtil;
+import com.safra.app.util.SosUtil; // SosUtil is used for all cleanup
 
 public class SettingsFragment extends Fragment {
 
@@ -55,8 +54,11 @@ public class SettingsFragment extends Fragment {
         binding.switchPlaySiren.setOnCheckedChangeListener((buttonView, isChecked) -> {
             Prefs.putBoolean(Constants.SETTINGS_PLAY_SIREN, isChecked);
             if (!isChecked) {
-                SosService.stopSiren();
+                // ✅ FIX: Removed the erroneous SosService.stopSiren() call.
+                // ✅ Calling SosUtil.stopSiren() stops the sound.
                 SosUtil.stopSiren();
+                // ✅ Calling SosUtil.stopSosNotificationService() ensures the background task/notification stops.
+                SosUtil.stopSosNotificationService(getContext());
             }
         });
         binding.playSirenContainer.setOnClickListener(v -> binding.switchPlaySiren.toggle());
