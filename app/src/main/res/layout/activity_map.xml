@@ -12,15 +12,26 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <TextView
-        android:id="@+id/riskTextView"
+    <LinearLayout
+        android:id="@+id/riskContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Risk will appear here"
-        android:textSize="16sp"
+        android:orientation="vertical"
+        android:background="#CC000000"
         android:padding="12dp"
-        android:background="#AAFFFFFF"
-        android:elevation="8dp"
-        android:layout_gravity="top"/>
+        android:elevation="10dp"
+        android:layout_gravity="top">
+
+        <TextView
+            android:id="@+id/riskTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Risk will appear here"
+            android:textSize="16sp"
+            android:textColor="#00FF00"
+            android:background="@drawable/risk_background"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
